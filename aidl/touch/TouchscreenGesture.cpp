@@ -63,9 +63,11 @@ ndk::ScopedAStatus TouchscreenGesture::setGestureEnabled(const Gesture& gesture,
 
     if (mOplusTouch) {
         int aidl_return = 0;
-        mOplusTouch->touchWriteNodeFile(OplusTouchConstants::DEFAULT_TP_IC_ID,
-                                        OplusTouchConstants::DOUBLE_TAP_ENABLE_NODE, "1",
-                                        &aidl_return);
+        if (gesture.keycode == kGestureStartKey + kGestureDoubleTap) {
+            mOplusTouch->touchWriteNodeFile(OplusTouchConstants::DEFAULT_TP_IC_ID,
+                                            OplusTouchConstants::DOUBLE_TAP_ENABLE_NODE,
+                                            enabled ? "1" : "0", &aidl_return);
+        }
         mOplusTouch->touchWriteNodeFile(OplusTouchConstants::DEFAULT_TP_IC_ID,
                                         OplusTouchConstants::DOUBLE_TAP_INDEP_NODE,
                                         std::to_string(contents), &aidl_return);
