@@ -53,8 +53,8 @@ bool setDeviceSpecificMode(Mode type, bool enabled) {
 
             int aidl_return = 0;
             oplusTouch->touchWriteNodeFile(OplusTouchConstants::DEFAULT_TP_IC_ID,
-                                           OplusTouchConstants::DOUBLE_TAP_ENABLE_NODE, "1",
-                                           &aidl_return);
+                                           OplusTouchConstants::DOUBLE_TAP_ENABLE_NODE,
+                                           enabled ? "1" : "0", &aidl_return);
             oplusTouch->touchWriteNodeFile(OplusTouchConstants::DEFAULT_TP_IC_ID,
                                            OplusTouchConstants::DOUBLE_TAP_INDEP_NODE,
                                            std::to_string(contents), &aidl_return);
