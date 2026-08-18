@@ -1,8 +1,15 @@
 package com.oplus.os;
 
+import android.app.AppGlobals;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.IPackageManager;
+import android.os.Binder;
 import android.os.Build;
+import android.os.Process;
+import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.text.TextUtils;
 
@@ -42,12 +49,52 @@ public class OplusBuild {
     }
 
     public static int getOplusOSVERSION() {
+        // Only report a real Oplus OS version to system (preinstalled) apps.
+        // Third-party apps (e.g. HeyMelody) must not detect this device as a
+        // ColorOS device, otherwise they enable ColorOS-only code paths that
+        // break on AOSP-based builds. See OplusBuild.isSystemCaller().
+        if (!isSystemCaller()) {
+            return UNKNOWN;
+        }
         for (int i = VERSIONS.length - 2; i >= 0; i--) {
             if (!TextUtils.isEmpty(VERSION.RELEASE) && VERSION.RELEASE.startsWith(VERSIONS[i])) {
                 return i + 1;
             }
         }
         return 23;
+    }
+
+    /**
+     * Returns true when the calling process belongs to a system (preinstalled)
+     * app, i.e. an app whose APK lives on a system partition. Regular
+     * user-installed apps (uid >= 10000, no FLAG_SYSTEM) are treated as
+     * non-system callers.
+     */
+    private static boolean isSystemCaller() {
+        int uid = Binder.getCallingUid();
+        if (uid == 0) {
+            // Not inside a binder transaction; fall back to our own uid.
+            uid = Process.myUid();
+        }
+        if (uid < Process.FIRST_APPLICATION_UID) {
+            return true;
+        }
+        try {
+            IPackageManager pm = AppGlobals.getPackageManager();
+            String[] packages = pm.getPackagesForUid(uid);
+            if (packages != null) {
+                int userId = UserHandle.getUserId(uid);
+                for (String packageName : packages) {
+                    ApplicationInfo ai = pm.getApplicationInfo(packageName, 0, userId);
+                    if (ai != null && (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                        return true;
+                    }
+                }
+            }
+        } catch (RemoteException e) {
+            // Fall through: treat as non-system caller.
+        }
+        return false;
     }
 
     public static boolean setDeviceName(String name) {
